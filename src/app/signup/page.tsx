@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export default function SignupPage() {
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -43,9 +45,26 @@ export default function SignupPage() {
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      // Not saving user info for now as requested
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      let photoURL = '';
+      if (profilePhoto) {
+        const storage = getStorage();
+        // Use user's UID to create a unique path for their profile photo
+        const storageRef = ref(storage, `profile-photos/${user.uid}`);
+        await uploadBytes(storageRef, profilePhoto);
+        photoURL = await getDownloadURL(storageRef);
+      }
+
+      await updateProfile(user, {
+        displayName: name,
+        photoURL: photoURL || undefined,
+      });
+
       toast({ title: 'Account created successfully!' });
       router.push('/');
     } catch (error: any) {
@@ -55,8 +74,19 @@ export default function SignupPage() {
         setError('An unexpected error occurred. Please try again.');
         console.error(error);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
+  
+  const getInitials = (name: string) => {
+    if (!name) return <Camera className="w-8 h-8"/>;
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`;
+    }
+    return name[0] || <Camera className="w-8 h-8"/>;
+  }
 
   return (
     <main className="flex min-h-dvh w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
@@ -80,7 +110,7 @@ export default function SignupPage() {
               <div className="relative">
                 <Avatar className="w-24 h-24">
                   <AvatarImage src={profilePhotoPreview || undefined} alt="Profile Photo" />
-                  <AvatarFallback>{name.charAt(0) || <Camera className="w-8 h-8"/>}</AvatarFallback>
+                  <AvatarFallback>{getInitials(name)}</AvatarFallback>
                 </Avatar>
                 <input type="file" id="photo-upload" className="hidden" accept="image/*" onChange={handleFileChange} />
                 <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 cursor-pointer hover:bg-primary/90">
@@ -97,6 +127,7 @@ export default function SignupPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="grid gap-2">
@@ -108,6 +139,7 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="grid gap-2">
@@ -118,6 +150,7 @@ export default function SignupPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="grid gap-2">
@@ -128,12 +161,13 @@ export default function SignupPage() {
                 required
                 value={repeatPassword}
                 onChange={(e) => setRepeatPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
           </CardContent>
           <CardContent className="flex flex-col gap-4">
-            <Button className="w-full" type="submit">
-              Create account
+            <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading ? 'Creating account...' : 'Create account'}
             </Button>
             <div className="text-center text-sm">
               Already have an account?{' '}
