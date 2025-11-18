@@ -24,7 +24,11 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      if (!userCredential.user.emailVerified) {
+        router.push(`/verify-email?email=${email}`);
+        return;
+      }
       toast({ title: 'Login Successful' });
       router.push('/');
     } catch (error: any) {

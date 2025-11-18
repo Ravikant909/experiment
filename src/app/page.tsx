@@ -2,22 +2,33 @@
 
 import { TippingCalculator } from '@/components/tipping-calculator';
 import { UserProfile } from '@/components/user-profile';
-import { useUser } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { signOut } from 'firebase/auth';
+
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const auth = useAuth();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
+    if (isUserLoading) {
+      return;
     }
-  }, [isUserLoading, user, router]);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (!user.emailVerified) {
+      signOut(auth);
+      router.push(`/verify-email?email=${user.email}`);
+    }
+  }, [isUserLoading, user, router, auth]);
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || !user || !user.emailVerified) {
     return (
       <main className="flex min-h-dvh w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
         <div className="flex flex-col space-y-3">

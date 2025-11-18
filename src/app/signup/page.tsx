@@ -4,12 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function SignupPage() {
@@ -21,7 +20,6 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +40,10 @@ export default function SignupPage() {
         displayName: name,
       });
 
-      toast({ title: 'Account created successfully!' });
-      router.push('/');
+      await sendEmailVerification(user);
+      await signOut(auth); // Sign out the user immediately
+
+      router.push(`/verify-email?email=${email}`);
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         setError('User already exists. Sign in?');
