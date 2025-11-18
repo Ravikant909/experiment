@@ -4,18 +4,30 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -38,6 +50,20 @@ export default function LoginPage() {
         setError('An unexpected error occurred. Please try again.');
         console.error(error);
       }
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+      setResetMessage('Please enter your email address.');
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      setResetMessage(`We sent a password reset link to ${resetEmail}.`);
+    } catch (error: any) {
+      console.error(error);
+      setResetMessage('Failed to send reset link. Please check the email address and try again.');
     }
   };
 
@@ -67,7 +93,48 @@ export default function LoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="link" className="p-0 h-auto text-xs">
+                      Forgot password?
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Reset Password</DialogTitle>
+                      <DialogDescription>
+                        Enter your email address and we will send you a link to reset your password.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="m@example.com"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                        />
+                      </div>
+                      {resetMessage && (
+                        <AlertDescription className="text-sm text-muted-foreground">
+                          {resetMessage}
+                        </AlertDescription>
+                      )}
+                    </div>
+                    <DialogFooter>
+                       {resetMessage.startsWith('We sent') ? (
+                        <Button onClick={() => setIsResetDialogOpen(false)}>Sign In</Button>
+                      ) : (
+                        <Button onClick={handlePasswordReset}>Get Reset Link</Button>
+                      )}
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <Input
                 id="password"
                 type="password"
