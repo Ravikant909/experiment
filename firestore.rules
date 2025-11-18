@@ -1,0 +1,80 @@
+/**
+ * @fileoverview Firestore Security Rules for SplitzyTip application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. Each user can only access their own profile data and the bills associated with their account.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information. Only the authenticated user with matching {userId} can read or write their own profile.
+ * - /users/{userId}/bills/{billId}: Stores bill information for a specific user. Only the authenticated user with matching {userId} can manage their own bills.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed to prevent unauthorized access to user data.
+ * - Read and write access to user profiles and bills is strictly controlled by user ownership.
+ *
+ * Denormalization for Authorization:
+ * - Each Bill document contains a `userId` field, which is used to enforce ownership and prevent unauthorized access.
+ *
+ * Structural Segregation:
+ * - User profiles and bills are stored in separate collections, providing a clear separation of concerns and simplifying security rules.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Enforces user-based access control for user profiles. Only the authenticated user can manage their own profile.
+     * @path /users/{userId}
+     * @allow (create, update, get, delete) - Authenticated user with matching {userId} can manage their own profile.
+     * @deny (create, update, get, delete) - Any other user attempting to access or modify another user's profile.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-based access control for bills. Only the authenticated user can manage their own bills.
+     * @path /users/{userId}/bills/{billId}
+     * @allow (create, update, get, delete) - Authenticated user with matching {userId} can manage their own bills.
+     * @deny (create, update, get, delete) - Any other user attempting to access or modify another user's bills.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/bills/{billId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}

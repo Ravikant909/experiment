@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "Bill": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Bill",
+      "type": "object",
+      "description": "Represents a bill to be split amongst friends.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Bill entity."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total amount of the bill before tip.",
+          "format": "number"
+        },
+        "tipPercentage": {
+          "type": "number",
+          "description": "The tip percentage applied to the bill.",
+          "format": "number"
+        },
+        "numberOfPeople": {
+          "type": "number",
+          "description": "The number of people splitting the bill.",
+          "format": "number"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Bill)"
+        }
+      },
+      "required": [
+        "id",
+        "totalAmount",
+        "tipPercentage",
+        "numberOfPeople",
+        "userId"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the SplitzyTip application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "profilePhotoURL": {
+          "type": "string",
+          "description": "The user's profile photo URL."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Path-based ownership ensures only the authenticated user (userId) can access their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/bills/{billId}",
+        "definition": {
+          "entityName": "Bill",
+          "schema": {
+            "$ref": "#/backend/entities/Bill"
+          },
+          "description": "Stores bill data associated with a user. Path-based ownership ensures only the authenticated user (userId) can access their own bills.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "billId",
+              "description": "The unique identifier for the bill."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the SplitzyTip application. The core principle is to avoid `get()` calls in security rules by denormalizing authorization data. User data is stored under `/users/{userId}`, enabling path-based ownership for user-specific data. Bills are stored under `/users/{userId}/bills/{billId}`, ensuring that each bill is associated with a specific user. This design supports secure list operations and maintains data integrity.\n\nAuthorization Independence: The structure utilizes path-based ownership, eliminating the need for `get()` calls in security rules to verify ownership. Each bill is stored directly under the user's document, and security rules can easily enforce that only the owner can access the bill.\n\nQAPs Support: The structure supports secure `list` operations because access to the `/users/{userId}/bills` collection can be easily restricted to the authenticated user. No filtering is needed within the rules, as the path itself enforces ownership."
+  }
+}
