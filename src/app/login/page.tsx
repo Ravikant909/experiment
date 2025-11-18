@@ -45,10 +45,24 @@ export default function LoginPage() {
     setError('');
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      if (!userCredential.user.emailVerified) {
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
         router.push(`/verify-email?email=${email}`);
         return;
       }
+      
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          id: user.uid,
+          name: user.displayName,
+          email: user.email,
+          profilePhotoURL: user.photoURL,
+        });
+      }
+
       toast({ title: 'Login Successful' });
       router.push('/');
     } catch (error: any) {
@@ -212,3 +226,4 @@ export default function LoginPage() {
     </main>
   );
 }
+
