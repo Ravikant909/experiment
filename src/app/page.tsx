@@ -1,6 +1,7 @@
 'use client';
 
 import { TippingCalculator } from '@/components/tipping-calculator';
+import { UserProfile } from '@/components/user-profile';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -31,7 +32,10 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-dvh w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
+    <main className="relative flex min-h-dvh w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
+      <div className="absolute top-4 right-4">
+        <UserProfile />
+      </div>
       <TippingCalculator />
     </main>
   );
