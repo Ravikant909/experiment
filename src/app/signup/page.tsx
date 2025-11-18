@@ -58,11 +58,11 @@ export default function SignupPage() {
         id: user.uid,
         name: name,
         email: user.email,
-        profilePhotoURL: null, // No photo on email signup
+        profilePhotoURL: null,
       });
 
       await sendEmailVerification(user);
-      await signOut(auth); // Sign out the user immediately
+      await signOut(auth);
 
       router.push(`/verify-email?email=${email}`);
     } catch (error: any) {
