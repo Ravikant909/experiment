@@ -66,7 +66,14 @@ export default function LoginPage() {
       toast({ title: 'Login Successful' });
       router.push('/');
     } catch (error: any) {
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        toast({
+          title: 'User not found',
+          description: 'Please create an account to log in.',
+          variant: 'destructive',
+        });
+        router.push('/signup');
+      } else if (error.code === 'auth/wrong-password') {
         setError('Password or Email is incorrect');
       } else {
         setError('An unexpected error occurred. Please try again.');
