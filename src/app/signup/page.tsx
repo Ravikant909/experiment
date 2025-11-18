@@ -5,36 +5,23 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera } from 'lucide-react';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeatPassword, setRepeatPassword] = useState('');
-  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
-  const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setProfilePhoto(file);
-      setProfilePhotoPreview(URL.createObjectURL(file));
-    }
-  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,18 +38,8 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      let photoURL = '';
-      if (profilePhoto) {
-        const storage = getStorage();
-        // Use user's UID to create a unique path for their profile photo
-        const storageRef = ref(storage, `profile-photos/${user.uid}`);
-        await uploadBytes(storageRef, profilePhoto);
-        photoURL = await getDownloadURL(storageRef);
-      }
-
       await updateProfile(user, {
         displayName: name,
-        photoURL: photoURL || undefined,
       });
 
       toast({ title: 'Account created successfully!' });
@@ -78,15 +55,6 @@ export default function SignupPage() {
       setIsLoading(false);
     }
   };
-  
-  const getInitials = (name: string) => {
-    if (!name) return <Camera className="w-8 h-8"/>;
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`;
-    }
-    return name[0] || <Camera className="w-8 h-8"/>;
-  }
 
   return (
     <main className="flex min-h-dvh w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
@@ -105,19 +73,6 @@ export default function SignupPage() {
                 </AlertDescription>
               </Alert>
             )}
-            
-            <div className="flex justify-center">
-              <div className="relative">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={profilePhotoPreview || undefined} alt="Profile Photo" />
-                  <AvatarFallback>{getInitials(name)}</AvatarFallback>
-                </Avatar>
-                <input type="file" id="photo-upload" className="hidden" accept="image/*" onChange={handleFileChange} />
-                <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 cursor-pointer hover:bg-primary/90">
-                  <Camera className="w-4 h-4"/>
-                </label>
-              </div>
-            </div>
 
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
@@ -165,7 +120,7 @@ export default function SignupPage() {
               />
             </div>
           </CardContent>
-          <CardContent className="flex flex-col gap-4">
+          <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" type="submit" disabled={isLoading}>
               {isLoading ? 'Creating account...' : 'Create account'}
             </Button>
@@ -175,7 +130,7 @@ export default function SignupPage() {
                 Login
               </Link>
             </div>
-          </CardContent>
+          </CardFooter>
         </form>
       </Card>
     </main>
