@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  "projectId": "studio-6391426098-61b23",
-  "appId": "1:718645006266:web:812e372ea27bda6368d783",
-  "apiKey": "AIzaSyBWX2Y9U6L0TAzPBaxmrPQkSEEZdFEENI4",
-  "authDomain": "studio-6391426098-61b23.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "718645006266"
+  apiKey: "AIzaSyADAoNB14Fnx_i-hlfrJ4PsCpDXtTfaYYU",
+  authDomain: "notepad-34289.firebaseapp.com",
+  projectId: "notepad-34289",
+  storageBucket: "notepad-34289.firebasestorage.app",
+  messagingSenderId: "973116800544",
+  appId: "1:973116800544:web:199af8f491df1a47820645"
 };
